@@ -2,11 +2,12 @@
 
 import { Routes } from '@angular/router';
 import { AuthGuard } from './core/guards/auth.guard';
+import { ManagerGuard } from './core/guards/manager.guard';
 
 export const routes: Routes = [
   {
     path: '',
-    redirectTo: 'dashboard',
+    redirectTo: 'login',
     pathMatch: 'full'
   },
 
@@ -31,26 +32,33 @@ export const routes: Routes = [
       .then(m => m.DefaultLayoutComponent),
     canMatch: [AuthGuard],
     children: [
+      // Dashboard - Manager only
       {
         path: 'dashboard',
         loadChildren: () => import('./views/dashboard/routes')
-          .then(m => m.DASHBOARD_ROUTES)
+          .then(m => m.DASHBOARD_ROUTES),
+        canMatch: [ManagerGuard]
       },
+      
+      // Attendance - Manager only
       {
         path: 'attendance',
         loadChildren: () => import('./views/attendance/routes')
-          .then(m => m.ATTENDANCE_ROUTES)
-      // Fixed: now uses real constant
+          .then(m => m.ATTENDANCE_ROUTES),
+        canMatch: [ManagerGuard]
       },
+      
+      // Tasks - Both Employee and Manager
       {
         path: 'tasks',
         loadChildren: () => import('./views/tasks/routes')
           .then(m => m.TASK_ROUTES)
       },
+      
       // Fallback inside layout
       {
         path: '',
-        redirectTo: 'dashboard',
+        redirectTo: 'tasks',
         pathMatch: 'full'
       }
     ]
@@ -61,6 +69,11 @@ export const routes: Routes = [
     path: '404',
     loadComponent: () => import('./views/pages/page404/page404.component')
       .then(m => m.Page404Component)
+  },
+  {
+    path: '403',
+    loadComponent: () => import('./views/pages/page403/page403.component')
+      .then(m => m.Page403Component)
   },
   {
     path: '**',

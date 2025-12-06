@@ -5,6 +5,7 @@ import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../../../core/services/auth/auth.service';
+import { RouterLink } from '@angular/router';
 
 import {
   ContainerComponent,
@@ -38,7 +39,8 @@ import { IconDirective } from '@coreui/icons-angular';
     FormDirective,
     InputGroupComponent,
     InputGroupTextDirective,
-    IconDirective
+    IconDirective,
+    RouterLink
   ],
   templateUrl: './login.component.html',
   styleUrls: ['./login.component.scss']
@@ -60,24 +62,36 @@ export class LoginComponent {
     this.error = '';
 
     if (!this.email && !this.password) {
-      this.error = 'Veuillez saisir votre email et votre mot de passe.';
+      this.error = 'Please enter your email and password.';
       return;
     }
     if (!this.email) {
-      this.error = 'Veuillez saisir votre adresse email.';
+      this.error = 'Please enter your email address.';
       return;
     }
     if (!this.password) {
-      this.error = 'Veuillez saisir votre mot de passe.';
+      this.error = 'Please enter your password.';
       return;
     }
 
     this.loading = true;
 
     this.authService.login(this.email, this.password).subscribe({
-      next: () => this.router.navigate(['/dashboard']),
-      error: () => {
-        this.error = 'Email ou mot de passe incorrect.';
+      next: (response) => {
+        console.log('Login successful:', response.user.role);
+        
+        // Role-based redirect
+        if (response.user.role === 'Manager') {
+          // Manager goes to attendance page
+          this.router.navigate(['/attendance']);
+        } else {
+          // Employee goes to tasks page
+          this.router.navigate(['/tasks']);
+        }
+      },
+      error: (err) => {
+        console.error('Login error:', err);
+        this.error = 'Invalid email or password.';
         this.loading = false;
       }
     });

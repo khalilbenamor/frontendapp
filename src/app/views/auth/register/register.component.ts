@@ -1,11 +1,10 @@
 // src/app/views/auth/register/register.component.ts
 
 import { Component } from '@angular/core';
-import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
+import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
-import { HttpClient } from '@angular/common/http';
-import { environment } from '../../../../environments/environment';
+import { AuthService } from '../../../core/services/auth/auth.service';
 
 import {
   CardComponent,
@@ -15,7 +14,8 @@ import {
   FormDirective,
   FormControlDirective,
   FormLabelDirective,
-  FormFeedbackComponent
+  FormFeedbackComponent,
+  AlertComponent
 } from '@coreui/angular';
 
 @Component({
@@ -32,7 +32,8 @@ import {
     FormDirective,
     FormControlDirective,
     FormLabelDirective,
-    FormFeedbackComponent
+    FormFeedbackComponent,
+    AlertComponent
   ],
   template: `
     <div class="container py-5">
@@ -43,6 +44,16 @@ import {
               <h3 class="mb-0">Create Account</h3>
             </c-card-header>
             <c-card-body class="p-4">
+              <!-- Success Message -->
+              <c-alert color="success" *ngIf="successMessage" [dismissible]="true">
+                {{ successMessage }}
+              </c-alert>
+
+              <!-- Error Message -->
+              <c-alert color="danger" *ngIf="errorMessage" [dismissible]="true">
+                {{ errorMessage }}
+              </c-alert>
+
               <form cForm [formGroup]="registerForm" (ngSubmit)="onSubmit()">
                 <div class="mb-3">
                   <label cLabel for="name">Full Name</label>
@@ -76,7 +87,8 @@ import {
 
                 <div class="mb-4">
                   <label cLabel for="role">Role</label>
-                  <select cFormControl id="role" formControlName="role">
+                  <select cFormControl id="role" formControlName="role"
+                    [class.is-invalid]="submitted && f['role'].errors">
                     <option value="Employee">Employee</option>
                     <option value="Manager">Manager</option>
                   </select>
@@ -84,7 +96,7 @@ import {
 
                 <button cButton color="primary" class="w-100" type="submit" [disabled]="loading">
                   <span *ngIf="loading" class="spinner-border spinner-border-sm me-2"></span>
-                  Create Account
+                  {{ loading ? 'Creating Account...' : 'Create Account' }}
                 </button>
 
                 <div class="text-center mt-3">
@@ -106,13 +118,15 @@ import {
   `]
 })
 export class RegisterComponent {
-  registerForm: ReturnType<FormBuilder['group']>;
+  registerForm: FormGroup;
   submitted = false;
   loading = false;
+  successMessage = '';
+  errorMessage = '';
 
   constructor(
     private fb: FormBuilder,
-    private http: HttpClient,
+    private authService: AuthService,
     private router: Router
   ) {
     this.registerForm = this.fb.group({
@@ -127,20 +141,26 @@ export class RegisterComponent {
 
   onSubmit() {
     this.submitted = true;
-    if (this.registerForm.invalid) return;
+    this.errorMessage = '';
+    this.successMessage = '';
+
+    if (this.registerForm.invalid) {
+      return;
+    }
 
     this.loading = true;
 
-    this.http.post(`${environment.apiUrl}/api/auth/register`, this.registerForm.value)
-      .subscribe({
-        next: () => {
-          alert('Registration successful! Please login.');
+    this.authService.register(this.registerForm.value).subscribe({
+      next: (response) => {
+        this.successMessage = 'Registration successful! Redirecting to login...';
+        setTimeout(() => {
           this.router.navigate(['/login']);
-        },
-        error: (err) => {
-          alert(err.error?.message || 'Registration failed');
-          this.loading = false;
-        }
-      });
+        }, 2000);
+      },
+      error: (error) => {
+        this.errorMessage = error.error?.message || 'Registration failed. Please try again.';
+        this.loading = false;
+      }
+    });
   }
 }
