@@ -1,0 +1,41 @@
+<!-- task-list.component.html -->
+<div class="row">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header">
+        <h4>My Tasks</h4>
+      </div>
+      <div class="card-body">
+        <div *ngIf="loading" class="text-center">
+          <span class="spinner-border"></span> Loading...
+        </div>
+
+        <table class="table table-hover" *ngIf="!loading">
+          <thead>
+            <tr>
+              <th>Title</th>
+              <th>Status</th>
+              <th>Due Date</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let task of tasks">
+              <td>{{ task.title }}</td>
+              <td>
+                <span class="badge" [class.bg-success]="task.status === 'completed'"
+                      [class.bg-warning]="task.status === 'pending'">
+                  {{ task.status | titlecase }}
+                </span>
+              </td>
+              <td>{{ task.dueDate | date }}</td>
+              <td>
+                <button class="btn btn-sm btn-primary">View</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,67 @@
+<!-- src/app/views/auth/login/login.component.html -->
+
+<div class="bg-light dark:bg-transparent min-vh-100 d-flex flex-row align-items-center">
+  <c-container breakpoint="md">
+    <c-row class="justify-content-center">
+      <c-col lg="10" xl="9">
+        <c-card-group>
+
+          <!-- LOGIN FORM -->
+          <c-card class="p-4">
+            <c-card-body>
+              <form cForm (ngSubmit)="onLogin()">
+                <h1>Connexion</h1>
+                <p class="text-body-secondary mb-4">Connectez-vous à votre compte</p>
+
+                <c-input-group class="mb-3">
+                  <span cInputGroupText>
+                    <svg cIcon name="cilUser" class="text-muted"></svg>
+                  </span>
+                  <input cFormControl type="email" placeholder="Email" [(ngModel)]="email" name="email" required />
+                </c-input-group>
+
+                <c-input-group class="mb-3">
+                  <span cInputGroupText>
+                    <svg cIcon name="cilLockLocked" class="text-muted"></svg>
+                  </span>
+                  <input cFormControl type="password" placeholder="Mot de passe" [(ngModel)]="password" name="password" required />
+                </c-input-group>
+
+                <div *ngIf="error" class="alert alert-danger d-flex align-items-center mb-4" role="alert">
+                  <svg cIcon name="cilWarning" width="22" height="22" class="me-3 text-danger"></svg>
+                  <div><strong>Erreur :</strong> {{ error }}</div>
+                </div>
+
+                <c-row>
+                  <c-col xs="6">
+                    <button cButton color="primary" class="px-4" type="submit" [disabled]="loading">
+                      <span *ngIf="loading" class="spinner-border spinner-border-sm me-2"></span>
+                      {{ loading ? 'Connexion...' : 'Se connecter' }}
+                    </button>
+                  </c-col>
+                  <c-col xs="6" class="text-end">
+                    <button cButton color="link" class="px-0" type="button">
+                      Mot de passe oublié ?
+                    </button>
+                  </c-col>
+                </c-row>
+              </form>
+            </c-card-body>
+          </c-card>
+
+          <!-- REGISTER CARD -->
+          <c-card class="text-white bg-primary py-5" style="min-width: 44%">
+            <c-card-body class="text-center">
+              <h2>Bienvenue !</h2>
+              <p class="px-4 mb-4">Vous n'avez pas encore de compte ?</p>
+              <button cButton color="light" variant="outline" class="px-5" routerLink="/register">
+                Créer un compte
+              </button>
+            </c-card-body>
+          </c-card>
+
+        </c-card-group>
+      </c-col>
+    </c-row>
+  </c-container>
+</div>  
