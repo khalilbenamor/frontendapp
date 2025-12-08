@@ -1,0 +1,149 @@
+<!-- src/app/views/auth/register/register.component.html -->
+<div class="bg-light min-vh-100 d-flex flex-row align-items-center">
+  <c-container>
+    <c-row class="justify-content-center">
+      <c-col lg="7" md="9" xl="6">
+        <c-card class="mx-4">
+          <c-card-body class="p-4">
+            <h1>Register</h1>
+            <p class="text-medium-emphasis">Create your employee account</p>
+
+            <!-- Alert messages -->
+            <c-alert color="danger" *ngIf="error" [dismissible]="true" (visibleChange)="error = ''">
+              {{ error }}
+            </c-alert>
+
+            <c-alert color="success" *ngIf="success" [dismissible]="true">
+              {{ success }}
+            </c-alert>
+
+            <form cForm [formGroup]="registerForm" (ngSubmit)="onSubmit()">
+              <!-- Name -->
+              <c-input-group class="mb-3">
+                <span cInputGroupText>
+                  <svg cIcon name="cilUser"></svg>
+                </span>
+                <input 
+                  autoComplete="name" 
+                  cFormControl 
+                  placeholder="Full Name"
+                  formControlName="name"
+                  [class.is-invalid]="registerForm.get('name')?.invalid && registerForm.get('name')?.touched" />
+              </c-input-group>
+              <div *ngIf="registerForm.get('name')?.invalid && registerForm.get('name')?.touched" 
+                   class="text-danger small mb-2">
+                Name is required
+              </div>
+
+              <!-- Email -->
+              <c-input-group class="mb-3">
+                <span cInputGroupText>@</span>
+                <input 
+                  autoComplete="email" 
+                  cFormControl 
+                  placeholder="Email"
+                  type="email"
+                  formControlName="email"
+                  [class.is-invalid]="registerForm.get('email')?.invalid && registerForm.get('email')?.touched" />
+              </c-input-group>
+              <div *ngIf="registerForm.get('email')?.invalid && registerForm.get('email')?.touched" 
+                   class="text-danger small mb-2">
+                Valid email is required
+              </div>
+
+              <!-- Password -->
+              <c-input-group class="mb-3">
+                <span cInputGroupText>
+                  <svg cIcon name="cilLockLocked"></svg>
+                </span>
+                <input 
+                  autoComplete="new-password" 
+                  cFormControl 
+                  placeholder="Password"
+                  type="password"
+                  formControlName="password"
+                  [class.is-invalid]="registerForm.get('password')?.invalid && registerForm.get('password')?.touched" />
+              </c-input-group>
+              <div *ngIf="registerForm.get('password')?.invalid && registerForm.get('password')?.touched" 
+                   class="text-danger small mb-2">
+                Password must be at least 6 characters
+              </div>
+
+            
+
+              <!-- RFID Badge Section -->
+              <div class="mb-3">
+                <hr>
+                <h6 class="mb-3">NFC Badge Registration</h6>
+                
+                <!-- Manual RFID Input -->
+                <c-input-group class="mb-2">
+                  <span cInputGroupText>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                      <path d="M0 4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V4zm2-1a1 1 0 0 0-1 1v1h14V4a1 1 0 0 0-1-1H2zm13 4H1v5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V7z"/>
+                      <path d="M2 10a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v1a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1v-1z"/>
+                    </svg>
+                  </span>
+                  <input 
+                    cFormControl 
+                    placeholder="NFC Badge UID (Optional)"
+                    formControlName="rfidTag"
+                    [readonly]="waitingForBadge" />
+                  <button 
+                    cButton 
+                    color="primary" 
+                    type="button"
+                    (click)="scanBadge()"
+                    [disabled]="waitingForBadge">
+                    {{ waitingForBadge ? 'Scanning...' : 'Scan Badge' }}
+                  </button>
+                </c-input-group>
+
+                <div class="small text-muted mb-2">
+                  • You can register now and add badge later<br>
+                  • Or use ESP32 reader to scan your NFC badge<br>
+                  • Badge UID will be automatically filled
+                </div>
+
+                <!-- Badge Scanning Status -->
+                <div *ngIf="waitingForBadge" class="alert alert-info">
+                  <div class="d-flex align-items-center">
+                    <span class="spinner-border spinner-border-sm me-2"></span>
+                    <span>Please scan your NFC badge on the ESP32 reader...</span>
+                  </div>
+                </div>
+
+                <div *ngIf="registerForm.get('rfidTag')?.value" class="alert alert-success">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="me-2" viewBox="0 0 16 16">
+                    <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/>
+                  </svg>
+                  Badge detected: {{ registerForm.get('rfidTag')?.value }}
+                </div>
+              </div>
+
+              <!-- Submit Button -->
+              <div class="d-grid">
+                <button 
+                  cButton 
+                  color="success" 
+                  type="submit"
+                  [disabled]="loading">
+                  <span *ngIf="loading" class="spinner-border spinner-border-sm me-2"></span>
+                  {{ loading ? 'Creating Account...' : 'Create Account' }}
+                </button>
+              </div>
+            </form>
+
+            <!-- Login Link -->
+            <div class="text-center mt-3">
+              <p class="text-muted">
+                Already have an account? 
+                <a routerLink="/login" class="text-decoration-none">Sign in</a>
+              </p>
+            </div>
+          </c-card-body>
+        </c-card>
+      </c-col>
+    </c-row>
+  </c-container>
+</div>

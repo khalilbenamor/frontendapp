@@ -1,0 +1,106 @@
+<!-- src/app/views/tasks/task-detail/task-detail.component.html -->
+
+<div class="row">
+  <div class="col-12">
+    <!-- Back Button -->
+    <div class="mb-3">
+      <button cButton color="secondary" size="sm" (click)="goBack()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" class="me-1">
+          <path fill-rule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8z"/>
+        </svg>
+        Back to Tasks
+      </button>
+    </div>
+
+    <!-- Loading State -->
+    <div *ngIf="loading" class="text-center py-5">
+      <span class="spinner-border spinner-border-lg text-primary"></span>
+      <p class="mt-2">Loading task details...</p>
+    </div>
+
+    <!-- Error State -->
+    <c-alert color="danger" *ngIf="error && !loading" [dismissible]="true">
+      {{ error }}
+    </c-alert>
+
+    <!-- Task Details -->
+    <c-card *ngIf="!loading && !error && task">
+      <c-card-header>
+        <h4 class="mb-0">{{ task.title }}</h4>
+      </c-card-header>
+      <c-card-body>
+        <div class="row">
+          <div class="col-md-8">
+            <h5>Description</h5>
+            <p>{{ task.description || 'No description provided' }}</p>
+
+            <hr>
+
+            <h5>Details</h5>
+            <table class="table">
+              <tbody>
+                <tr>
+                  <th width="200">Status:</th>
+                  <td>
+                    <span class="badge" 
+                          [class.bg-success]="task.status === 'completed'"
+                          [class.bg-info]="task.status === 'in-progress'"
+                          [class.bg-warning]="task.status === 'pending'">
+                      {{ task.status | titlecase }}
+                    </span>
+                  </td>
+                </tr>
+                <tr>
+                  <th>Priority:</th>
+                  <td>
+                    <span class="badge" 
+                          [class.bg-danger]="task.priority === 'high'"
+                          [class.bg-warning]="task.priority === 'medium'"
+                          [class.bg-info]="task.priority === 'low'">
+                      {{ task.priority | titlecase }}
+                    </span>
+                  </td>
+                </tr>
+                <tr>
+                  <th>Due Date:</th>
+                  <td>{{ task.dueDate ? (task.dueDate | date:'MMM d, y') : 'No due date' }}</td>
+                </tr>
+                <tr>
+                  <th>Assigned By:</th>
+                  <td>{{ task.assignedByName || 'Unknown' }}</td>
+                </tr>
+                <tr>
+                  <th>Created:</th>
+                  <td>{{ task.createdAt | date:'MMM d, y - h:mm a' }}</td>
+                </tr>
+                <tr>
+                  <th>Last Updated:</th>
+                  <td>{{ task.updatedAt | date:'MMM d, y - h:mm a' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="col-md-4">
+            <h5>Actions</h5>
+            <div class="d-grid gap-2">
+              <button cButton color="success" 
+                      (click)="updateStatus('in-progress')"
+                      *ngIf="task.status === 'pending'">
+                Start Task
+              </button>
+              <button cButton color="success" 
+                      (click)="updateStatus('completed')"
+                      *ngIf="task.status === 'in-progress'">
+                Complete Task
+              </button>
+              <span *ngIf="task.status === 'completed'" class="text-success">
+                ✓ Task completed
+              </span>
+            </div>
+          </div>
+        </div>
+      </c-card-body>
+    </c-card>
+  </div>
+</div>

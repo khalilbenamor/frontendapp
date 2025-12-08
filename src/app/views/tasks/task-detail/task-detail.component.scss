@@ -1,0 +1,16 @@
+// src/app/views/tasks/task-detail/task-detail.component.scss
+
+.badge {
+  font-size: 0.85rem;
+  padding: 0.4em 0.7em;
+}
+
+table {
+  th {
+    font-weight: 600;
+  }
+  
+  td, th {
+    vertical-align: middle;
+  }
+}

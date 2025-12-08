@@ -1,82 +1,45 @@
-// src/app/app.routes.ts
-
 import { Routes } from '@angular/router';
 import { AuthGuard } from './core/guards/auth.guard';
 import { ManagerGuard } from './core/guards/manager.guard';
-
+import { ForgotPasswordComponent } from '../app/app/views/auth/forgot-password/forgot-password.component';
+import { ResetPasswordComponent } from '../app/app/views/auth/reset-password/reset-password.component';
 export const routes: Routes = [
-  {
-    path: '',
-    redirectTo: 'login',
-    pathMatch: 'full'
-  },
+  { path: '', redirectTo: 'login', pathMatch: 'full' },
 
-  // Public routes
   {
     path: 'login',
     loadComponent: () => import('./views/auth/login/login.component')
-      .then(m => m.LoginComponent),
-    data: { title: 'Login' }
+      .then(m => m.LoginComponent)
+  },
+   {
+    path: 'reset-password',
+    component: ResetPasswordComponent
+  },
+  {
+    path: 'forgot-password',
+    component: ForgotPasswordComponent
   },
   {
     path: 'register',
-    loadComponent: () => import('./views/auth/register/register.component')
-      .then(m => m.RegisterComponent),
-    data: { title: 'Register' }
+    loadComponent: () => import('./views/auth/register/register-new.component')
+      .then(m => m.RegisterNewComponent)
   },
 
-  // Protected layout – all children require login
+  // TOP-LEVEL routes — do NOT instantiate DefaultLayout.
+  // This avoids the DefaultLayout DI error (missing _SidebarNavHelper)
+  // and lets you verify that the actual pages work.
   {
-    path: '',
-    loadComponent: () => import('./layout/default-layout/default-layout.component')
-      .then(m => m.DefaultLayoutComponent),
-    canMatch: [AuthGuard],
-    children: [
-      // Dashboard - Manager only
-      {
-        path: 'dashboard',
-        loadChildren: () => import('./views/dashboard/routes')
-          .then(m => m.DASHBOARD_ROUTES),
-        canMatch: [ManagerGuard]
-      },
-      
-      // Attendance - Manager only
-      {
-        path: 'attendance',
-        loadChildren: () => import('./views/attendance/routes')
-          .then(m => m.ATTENDANCE_ROUTES),
-        canMatch: [ManagerGuard]
-      },
-      
-      // Tasks - Both Employee and Manager
-      {
-        path: 'tasks',
-        loadChildren: () => import('./views/tasks/routes')
-          .then(m => m.TASK_ROUTES)
-      },
-      
-      // Fallback inside layout
-      {
-        path: '',
-        redirectTo: 'tasks',
-        pathMatch: 'full'
-      }
-    ]
+    path: 'tasks',
+    loadComponent: () => import('./views/tasks/task-list/task-list.component')
+      .then(m => m.TaskListComponent),
+    canMatch: [AuthGuard]
+  },
+  {
+    path: 'dashboard',
+    loadComponent: () => import('./views/dashboard/dashboard.component')
+      .then(m => m.DashboardComponent),
+    canMatch: [AuthGuard, ManagerGuard]
   },
 
-  // Error pages
-  {
-    path: '404',
-    loadComponent: () => import('./views/pages/page404/page404.component')
-      .then(m => m.Page404Component)
-  },
-  {
-    path: '403',
-    loadComponent: () => import('./views/pages/page403/page403.component')
-      .then(m => m.Page403Component)
-  },
-  {
-    path: '**',
-    redirectTo: '404'
-  }
+  { path: '**', redirectTo: 'login' }
 ];

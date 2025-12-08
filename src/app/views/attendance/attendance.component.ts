@@ -1,95 +1,127 @@
 // src/app/views/attendance/attendance.component.ts
+
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { HttpClient } from '@angular/common/http';
-import { environment } from '../../../environments/environment';
+import { RouterLink } from '@angular/router';
+import { AttendanceService, AttendanceRecord } from '../../core/services/attendance/attendance.service';
 
-// CoreUI v5 components & directives
 import {
   CardComponent,
   CardHeaderComponent,
   CardBodyComponent,
   ButtonDirective,
-  TableDirective,
-  BadgeComponent,          // ← this is the correct badge in v5
-  GridModule
+  BadgeComponent,
+  AlertComponent,
+  TableDirective
 } from '@coreui/angular';
-
-interface AttendanceRecord {
-  id: string;
-  clockIn: string;
-  clockOut?: string;
-  date: string;
-  duration?: string;
-}
 
 @Component({
   selector: 'app-attendance',
   standalone: true,
   imports: [
     CommonModule,
-    GridModule,
+    RouterLink,
     CardComponent,
     CardHeaderComponent,
     CardBodyComponent,
     ButtonDirective,
-    TableDirective,
-    BadgeComponent        // ← correct badge component
+    BadgeComponent,
+    AlertComponent,
+    TableDirective
   ],
   templateUrl: './attendance.component.html',
   styleUrls: ['./attendance.component.scss']
 })
 export class AttendanceComponent implements OnInit {
   records: AttendanceRecord[] = [];
+  loading = true;
+  error = '';
+  todayStatus = 'not-clocked-in';
   todayRecord: AttendanceRecord | null = null;
-  loading = false;
   clockedIn = false;
 
-  constructor(private http: HttpClient) {}
+  constructor(private attendanceService: AttendanceService) {}
 
-  ngOnInit() {
-    this.loadTodayStatus();
-    this.loadHistory();
-   
+  ngOnInit(): void {
+    this.loadRecords();
+    this.checkTodayStatus();
   }
 
-  loadTodayStatus() {
-    this.http.get<any>(`${environment.apiUrl}/api/attendance/today`).subscribe({
-      next: (res) => {
-        this.todayRecord = res.record || null;
-        this.clockedIn = !!res.record && !res.record.clockOut;
-      },
-      error: () => {}
-    });
-  }
-
-  loadHistory() {
-    this.http.get<AttendanceRecord[]>(`${environment.apiUrl}/api/attendance/history`).subscribe({
-      next: (data) => this.records = data,
-      error: () => this.records = []
-    });
-  }
-
-  clockIn() {
+  loadRecords() {
     this.loading = true;
-    this.http.post(`${environment.apiUrl}/api/attendance/clock-in`, {}).subscribe({
-      next: () => {
-        this.clockedIn = true;
-        this.loadTodayStatus();
-        this.loadHistory();
+    this.error = '';
+
+    this.attendanceService.getAllRecords().subscribe({
+      next: (response) => {
+        if (response.success && response.records) {
+          this.records = response.records;
+          this.updateTodayRecord();
+        }
+        this.loading = false;
+      },
+      error: (err) => {
+        console.error('Failed to load attendance records', err);
+        this.error = 'Failed to load attendance records. Please try again.';
         this.loading = false;
       }
     });
   }
 
+  checkTodayStatus() {
+    this.attendanceService.getTodayStatus().subscribe({
+      next: (response) => {
+        if (response.success) {
+          this.todayStatus = response.status || 'not-clocked-in';
+          this.clockedIn = response.status === 'clocked-in';
+          
+          if (response.record) {
+            this.todayRecord = response.record;
+          }
+        }
+      },
+      error: (err) => {
+        console.error('Failed to check today status', err);
+      }
+    });
+  }
+
+  updateTodayRecord() {
+    const today = new Date().toISOString().split('T')[0];
+    this.todayRecord = this.records.find(r => r.date === today) || null;
+    
+    if (this.todayRecord) {
+      this.clockedIn = this.todayRecord.status === 'clocked-in';
+    }
+  }
+
+  clockIn() {
+    this.attendanceService.clockIn().subscribe({
+      next: (response) => {
+        if (response.success) {
+          alert('Clocked in successfully!');
+          this.loadRecords();
+          this.checkTodayStatus();
+        }
+      },
+      error: (err) => {
+        console.error('Failed to clock in', err);
+        this.error = err.error?.message || 'Failed to clock in. Please try again.';
+      }
+    });
+  }
+
   clockOut() {
-    this.loading = true;
-    this.http.post(`${environment.apiUrl}/api/attendance/clock-out`, {}).subscribe({
-      next: () => {
-        this.clockedIn = false;
-        this.loadTodayStatus();
-        this.loadHistory();
-        this.loading = false;
+    this.attendanceService.clockOut().subscribe({
+      next: (response) => {
+        if (response.success) {
+          alert('Clocked out successfully!');
+          this.loadRecords();
+          this.checkTodayStatus();
+        }
+      },
+      error: (err) => {
+        console.error('Failed to clock out', err);
+        this.error = err.error?.message || 'Failed to clock out. Please try again.';
       }
     });
   }
