@@ -1,37 +1,27 @@
-// src/app/core/services/api.service.ts
-
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { environment } from '../../../environments/environment';
+import { Observable, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 
-@Injectable({
-  providedIn: 'root'
-})
-export class ApiService {
-  private readonly baseUrl = environment.apiUrl; // "http://localhost:3000"
+export interface AppMeta {
+  appName?: string;
+  version?: string;
+  [key: string]: any;
+}
+
+@Injectable({ providedIn: 'root' })
+export class MetaService {
+  private metaUrl = '/meta.json';
 
   constructor(private http: HttpClient) {}
 
-  // Auth
-  login(credentials: any) {
-    return this.http.post(`${this.baseUrl}/api/auth/login`, credentials);
-  }
-
-  // Attendance
-  getAttendanceRecords() {
-    return this.http.get(`${this.baseUrl}/api/attendance/records`);
-  }
-
-  clockIn() {
-    return this.http.post(`${this.baseUrl}/api/attendance/clock-in`, {});
-  }
-
-  // Tasks
-  getTasks() {
-    return this.http.get(`${this.baseUrl}/api/tasks`);
-  }
-
-  createTask(task: any) {
-    return this.http.post(`${this.baseUrl}/api/tasks`, task);
+  loadMeta(): Observable<AppMeta> {
+    return this.http.get<AppMeta>(this.metaUrl).pipe(
+      catchError(err => {
+        console.warn('⚠️ Impossible de charger meta.json, fallback utilisé', err);
+        // Retourne un objet par défaut pour éviter que l'app plante
+        return of({ appName: 'OneDay', version: '0.0.0' });
+      })
+    );
   }
 }

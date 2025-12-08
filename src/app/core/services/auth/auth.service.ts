@@ -1,7 +1,8 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { BehaviorSubject, Observable, tap, catchError, throwError } from 'rxjs';
+import { BehaviorSubject, Observable, of, throwError } from 'rxjs';
+import { tap, catchError, finalize } from 'rxjs/operators';
 import { environment } from '../../../../environments/environment';
 
 export interface User {
@@ -16,6 +17,7 @@ export interface LoginResponse {
   success: boolean;
   token: string;
   user: User;
+  message?: string;
 }
 
 export interface RegisterData {
@@ -23,6 +25,23 @@ export interface RegisterData {
   email: string;
   password: string;
   role: 'Manager' | 'Employee';
+  rfidTag?: string;
+}
+
+export interface ForgotPasswordResponse {
+  success: boolean;
+  message: string;
+}
+
+export interface VerifyTokenResponse {
+  success: boolean;
+  message: string;
+  email?: string;
+}
+
+export interface ResetPasswordResponse {
+  success: boolean;
+  message: string;
 }
 
 @Injectable({
@@ -33,7 +52,7 @@ export class AuthService {
   public currentUser$ = this.currentUserSubject.asObservable();
 
   constructor(
-    private http: HttpClient, 
+    private http: HttpClient,
     private router: Router
   ) {
     this.loadUserFromStorage();
@@ -43,58 +62,139 @@ export class AuthService {
     const saved = localStorage.getItem('currentUser');
     if (saved) {
       try {
-        this.currentUserSubject.next(JSON.parse(saved));
+        const user = JSON.parse(saved);
+        console.log('👤 User loaded from storage:', user);
+        this.currentUserSubject.next(user);
       } catch (error) {
-        console.error('Error loading user from storage:', error);
+        console.error('❌ Error loading user from storage:', error);
         this.clearAuth();
       }
     }
   }
 
-  register(data: RegisterData): Observable<any> {
-    return this.http.post(`${environment.apiUrl}/api/auth/register`, data).pipe(
+  register(data: RegisterData): Observable<LoginResponse> {
+    console.log('📝 Auth Service - Register request:', data);
+    return this.http.post<LoginResponse>(`${environment.apiUrl}/api/auth/register`, data).pipe(
+      tap(res => {
+        console.log('✅ Auth Service - Register response:', res);
+        if (res.success && res.token && res.user) {
+          localStorage.setItem('token', res.token);
+          localStorage.setItem('currentUser', JSON.stringify(res.user));
+          this.currentUserSubject.next(res.user);
+        }
+      }),
       catchError(error => {
-        console.error('Registration error:', error);
+        console.error('❌ Auth Service - Register error:', error);
         return throwError(() => error);
       })
     );
   }
 
   login(email: string, password: string): Observable<LoginResponse> {
-    return this.http.post<LoginResponse>(`${environment.apiUrl}/api/auth/login`, {
-      email,
-      password
-    }).pipe(
+    console.log('🔐 Auth Service - Login request:', email);
+    return this.http.post<LoginResponse>(`${environment.apiUrl}/api/auth/login`, { email, password }).pipe(
       tap(res => {
-        console.log('Login response:', res); // Debug log
+        console.log('✅ Auth Service - Login response:', res);
         if (res.success && res.token && res.user) {
-          console.log('User role:', res.user.role); // Debug log
           localStorage.setItem('token', res.token);
           localStorage.setItem('currentUser', JSON.stringify(res.user));
           this.currentUserSubject.next(res.user);
-          
-          // Add a small delay before navigation to ensure state is updated
-          setTimeout(() => {
-            if (res.user.role === 'Employee') {
-              console.log('Navigating to /tasks'); // Debug log
-              this.router.navigate(['/tasks']);
-            } else if (res.user.role === 'Manager') {
-              console.log('Navigating to /dashboard'); // Debug log
-              this.router.navigate(['/dashboard']);
-            }
-          }, 100);
         }
       }),
       catchError(error => {
-        console.error('Login error:', error);
+        console.error('❌ Auth Service - Login error:', error);
         return throwError(() => error);
       })
     );
   }
 
+  /**
+   * Logout:
+   * - optionally call server /api/auth/logout to blacklist the token (best-effort)
+   * - ALWAYS clear local client state (token, currentUser) and navigate to /login
+   */
   logout() {
-    this.clearAuth();
-    this.router.navigate(['/login']);
+    const token = this.getToken();
+
+    if (!token) {
+      // No token: just clean client
+      this.clearAuth();
+      this.router.navigate(['/login']);
+      return;
+    }
+
+    // Best-effort server logout; your auth interceptor should attach Authorization header.
+    this.http.post<{ success: boolean; message?: string }>(`${environment.apiUrl}/api/auth/logout`, {}).pipe(
+      catchError(err => {
+        console.warn('AuthService.logout: server logout failed (continuing client cleanup)', err);
+        // swallow error and continue
+        return of(null);
+      }),
+      finalize(() => {
+        // Always cleanup client-side state
+        this.clearAuth();
+        this.router.navigate(['/login']);
+      })
+    ).subscribe();
+  }
+
+  /**
+   * Request password reset link
+   * Sends an email with reset token to the user
+   */
+  forgotPassword(email: string): Observable<ForgotPasswordResponse> {
+    console.log('🔐 Auth Service - Forgot password request:', email);
+    return this.http.post<ForgotPasswordResponse>(
+      `${environment.apiUrl}/api/auth/forgot-password`,
+      { email }
+    ).pipe(
+      tap(res => {
+        console.log('✅ Auth Service - Forgot password response:', res);
+      }),
+      catchError(error => {
+        console.error('❌ Auth Service - Forgot password error:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  /**
+   * Verify if a reset token is valid
+   * Call this when user clicks the reset link in their email
+   */
+  verifyResetToken(token: string): Observable<VerifyTokenResponse> {
+    console.log('🔐 Auth Service - Verify reset token');
+    return this.http.get<VerifyTokenResponse>(
+      `${environment.apiUrl}/api/auth/verify-reset-token/${token}`
+    ).pipe(
+      tap(res => {
+        console.log('✅ Auth Service - Token verified:', res);
+      }),
+      catchError(error => {
+        console.error('❌ Auth Service - Verify token error:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  /**
+   * Reset password with valid token
+   * Called when user submits new password on reset form
+   */
+  resetPassword(token: string, newPassword: string): Observable<ResetPasswordResponse> {
+    console.log('🔄 Auth Service - Reset password request');
+    return this.http.post<ResetPasswordResponse>(
+      `${environment.apiUrl}/api/auth/reset-password`,
+      { token, newPassword }
+    ).pipe(
+      tap(res => {
+        console.log('✅ Auth Service - Password reset successful:', res);
+      }),
+      catchError(error => {
+        console.error('❌ Auth Service - Reset password error:', error);
+        return throwError(() => error);
+      })
+    );
   }
 
   private clearAuth() {
@@ -108,15 +208,22 @@ export class AuthService {
   }
 
   isLoggedIn(): boolean {
-    return !!this.getToken();
+    const token = this.getToken();
+    const isLoggedIn = !!token;
+    console.log('🔍 Is logged in?', isLoggedIn, 'Token:', token ? 'exists' : 'missing');
+    return isLoggedIn;
   }
 
   getCurrentUser(): User | null {
-    return this.currentUserSubject.value;
+    const user = this.currentUserSubject.value;
+    console.log('👤 Get current user:', user);
+    return user;
   }
 
   getUserRole(): 'Manager' | 'Employee' | null {
-    return this.currentUserSubject.value?.role || null;
+    const role = this.currentUserSubject.value?.role || null;
+    console.log('🎭 Get user role:', role);
+    return role;
   }
 
   isManager(): boolean {

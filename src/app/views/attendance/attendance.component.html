@@ -19,7 +19,7 @@
           <strong>Status:</strong>
 <c-badge [color]="clockedIn ? 'success' : 'secondary'" class="ms-2">
   {{ clockedIn ? 'Clocked In' : 'Clocked Out' }}
-</c-badge>            {{ clockedIn ? 'Clocked In' : 'Clocked Out' }}
+</c-badge>            {{ clockedIn? 'Clocked In' : 'Clocked Out' }}
           
           <br>
           <small>Clock In: {{ todayRecord.clockIn | date:'medium' }}</small>

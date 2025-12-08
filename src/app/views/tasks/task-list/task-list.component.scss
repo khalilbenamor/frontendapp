@@ -1,0 +1,22 @@
+// src/app/views/tasks/task-list/task-list.component.scss
+
+.table {
+  td {
+    vertical-align: middle;
+  }
+}
+
+.badge {
+  font-size: 0.75rem;
+  padding: 0.35em 0.65em;
+}
+
+.btn-group {
+  button {
+    margin-right: 0.25rem;
+    
+    &:last-child {
+      margin-right: 0;
+    }
+  }
+}

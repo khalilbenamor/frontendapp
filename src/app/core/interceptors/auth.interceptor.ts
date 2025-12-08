@@ -1,48 +1,28 @@
-// src/app/core/interceptors/auth.interceptor.ts
+import { HttpInterceptorFn } from '@angular/common/http';
+import { inject } from '@angular/core';
 
-import { Injectable } from '@angular/core';
-import { HttpInterceptor, HttpRequest, HttpHandler, HttpEvent, HttpErrorResponse } from '@angular/common/http';
-import { Observable, throwError } from 'rxjs';
-import { catchError } from 'rxjs/operators';
-import { Router } from '@angular/router';
-import { AuthService } from '../services/auth/auth.service';
+export const authInterceptor: HttpInterceptorFn = (req, next) => {
+  // 1. Get the token from LocalStorage
+  const token = localStorage.getItem('token');
+  
+  // DEBUG: Log the token and request
+  console.log('=== AUTH INTERCEPTOR ===');
+  console.log('Token from localStorage:', token);
+  console.log('Request URL:', req.url);
+  console.log('Request method:', req.method);
 
-@Injectable()
-export class AuthInterceptor implements HttpInterceptor {
-  constructor(
-    private authService: AuthService,
-    private router: Router
-  ) {}
-
-  intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
-    // Get the auth token
-    const token = this.authService.getToken();
-    
-    // Clone the request and add authorization header if token exists
-    if (token) {
-      req = req.clone({
-        setHeaders: {
-          Authorization: `Bearer ${token}`
-        }
-      });
-    }
-
-    // Handle the request and catch errors
-    return next.handle(req).pipe(
-      catchError((error: HttpErrorResponse) => {
-        // If 401 Unauthorized, logout and redirect to login
-        if (error.status === 401) {
-          console.warn('Unauthorized request - logging out');
-          this.authService.logout();
-        }
-        
-        // If 403 Forbidden
-        if (error.status === 403) {
-          console.warn('Access forbidden');
-        }
-
-        return throwError(() => error);
-      })
-    );
+  // 2. If token exists, clone the request and add the header
+  if (token) {
+    const clonedRequest = req.clone({
+      setHeaders: {
+        Authorization: `Bearer ${token}`
+      }
+    });
+    console.log('Added Authorization header:', clonedRequest.headers.get('Authorization'));
+    return next(clonedRequest);
   }
-}
+
+  // 3. If no token, just send the original request
+  console.log('No token found - sending request without auth');
+  return next(req);
+};

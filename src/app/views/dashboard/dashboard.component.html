@@ -1,3 +1,4 @@
+
 <!-- src/app/views/dashboard/dashboard.component.html -->
 <div class="row">
   <div class="col-sm-6 col-lg-3">
@@ -42,6 +43,119 @@
   </div>
 </div>
 
+<!-- Manager: create / list / update tasks -->
+<div *ngIf="authService.isManager()" class="mt-4">
+  <div class="row">
+    <div class="col-lg-4">
+      <c-card>
+        <c-card-header>
+          <strong>Create Task</strong>
+        </c-card-header>
+        <c-card-body>
+          <form (ngSubmit)="createTask()" [formGroup]="createForm" novalidate>
+            <div class="mb-2">
+              <label class="form-label">Title</label>
+              <input class="form-control" formControlName="title" />
+            </div>
+
+            <div class="mb-2">
+              <label class="form-label">Assigned To (user id)</label>
+              <input class="form-control" formControlName="assignedTo" placeholder="Mongo user id" />
+              <small class="text-muted">You can paste user _id here or integrate user picker.</small>
+            </div>
+
+            <div class="mb-2">
+              <label class="form-label">Priority</label>
+              <select class="form-select" formControlName="priority">
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+              </select>
+            </div>
+
+            <div class="mb-2">
+              <label class="form-label">Due date</label>
+              <input type="date" class="form-control" formControlName="dueDate" />
+            </div>
+
+            <div *ngIf="createError" class="alert alert-danger">{{ createError }}</div>
+            <div *ngIf="createSuccess" class="alert alert-success">{{ createSuccess }}</div>
+
+            <div class="d-grid">
+              <button type="submit" cButton color="primary" [disabled]="creating">
+                {{ creating ? 'Creating...' : 'Create Task' }}
+              </button>
+            </div>
+          </form>
+        </c-card-body>
+      </c-card>
+    </div>
+
+    <div class="col-lg-8">
+      <c-card>
+        <c-card-header class="d-flex justify-content-between align-items-center">
+          <strong>All Tasks</strong>
+          <div>
+            <button cButton color="secondary" size="sm" (click)="loadAllTasks()" [disabled]="loadingTasks">
+              Refresh
+            </button>
+            <button cButton color="danger" size="sm" class="ms-2" (click)="logout()">Logout</button>
+          </div>
+        </c-card-header>
+        <c-card-body>
+          <div *ngIf="loadingTasks" class="text-center py-3">
+            <span class="spinner-border spinner-border-sm me-2"></span> Loading...
+          </div>
+
+          <div *ngIf="!loadingTasks && managerTasks.length === 0" class="text-center text-muted">
+            No tasks found.
+          </div>
+
+          <div *ngIf="!loadingTasks && managerTasks.length > 0" class="table-responsive">
+            <table class="table table-hover">
+              <thead>
+                <tr>
+                  <th>Title</th>
+                  <th>Assigned To</th>
+                  <th>Priority</th>
+                  <th>Status</th>
+                  <th>Due</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let t of managerTasks">
+                  <td>{{ t.title }}</td>
+                  <td>{{ t.assignedToName || t.assignedTo }}</td>
+                  <td>{{ t.priority | titlecase }}</td>
+                  <td>
+                    <span class="badge"
+                      [class.bg-success]="t.status === 'completed'"
+                      [class.bg-info]="t.status === 'in-progress'"
+                      [class.bg-warning]="t.status === 'pending'">
+                      {{ t.status | titlecase }}
+                    </span>
+                  </td>
+                  <td>{{ t.dueDate ? (t.dueDate | date:'MMM d, y') : '—' }}</td>
+                  <td>
+                    <div class="btn-group">
+                      <button cButton color="primary" size="sm" (click)="updateTaskStatus(t, 'in-progress')" *ngIf="t.status === 'pending'">Start</button>
+                      <button cButton color="success" size="sm" (click)="updateTaskStatus(t, 'completed')" *ngIf="t.status === 'in-progress'">Complete</button>
+                      <button cButton color="warning" size="sm" (click)="updateTaskStatus(t, 'pending')" *ngIf="t.status === 'in-progress' || t.status === 'completed'">Mark Pending</button>
+                      <button cButton color="danger" size="sm" (click)="deleteTask(t._id)">Delete</button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </c-card-body>
+      </c-card>
+    </div>
+  </div>
+</div>
+
+<!-- keep the Quick Actions card below for everyone -->
 <div class="card mt-4">
   <div class="card-header">
     <strong>Quick Actions</strong>

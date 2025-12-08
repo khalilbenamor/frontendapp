@@ -4,7 +4,7 @@ import { ButtonModule, CardModule, FormModule, GridModule } from '@coreui/angula
 import { IconModule } from '@coreui/icons-angular';
 import { IconSetService } from '@coreui/icons-angular';
 import { iconSubset } from '../../../icons/icon-subset';
-import { RegisterComponent } from './register.component';
+import { RegisterComponent } from  './register.component';
 
 describe('RegisterComponent', () => {
   let component: RegisterComponent;
